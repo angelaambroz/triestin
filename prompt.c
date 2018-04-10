@@ -32,8 +32,6 @@ void add_history(char* unused) {}
 
 
 // Polish notation, using mpc.h
-
-
 int main(int argc, char** argv)
 {
 
