@@ -22,6 +22,38 @@ char* readline(char* prompt)
 	return cpy;
 }
 
+long peak(char* numbers, bool min)
+{
+	// iterature through the ints in the array, 4 bytes at a time
+	// how do i know the length of the array? oof
+	// TODO: FIX THIS
+	int size_of_numbers = 10;
+
+	// start somewhere: the beginning
+	long peak = numbers[0];
+
+	for (c = 0; c < size_of_numbers; c++)
+	{
+		if (min)
+		{
+			if (numbers[c] < peak)
+			{
+				peak = numbers[c];
+			}
+		}
+		else
+		{
+			if (numbers[c] > peak)
+			{
+				peak = numbers[c];
+			}
+		}
+	}
+
+	return peak;
+
+}
+
 void add_history(char* unused) {}
 
 
