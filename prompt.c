@@ -8,8 +8,7 @@
 
 // WINDOWS
 
-#ifdef _WIN32
-#include <string.h>
+// #ifdef _WIN32
 
 static char buffer[2048];
 
@@ -25,41 +24,101 @@ char* readline(char* prompt)
 
 void add_history(char* unused) {}
 
+/* Create Enumeration of Possible Error Types */
+enum { TERR_DIV_ZERO, TERR_BAD_OP, TERR_BAD_NUM };
 
-// MAC, LINUX
-#else
-#include "editline/readline.h"
-#endif
+/* Create Enumeration of Possible tval Types */
+enum { TVAL_NUM, TVAL_ERR };
+
+/* Declare New tval Struct */
+typedef struct {
+  int type;
+  long num;
+  int err;
+} tval;
+
+/* Create a new number type tval */
+tval tval_num(long x) {
+  tval v;
+  v.type = TVAL_NUM;
+  v.num = x;
+  return v;
+}
+
+/* Create a new error type tval */
+tval tval_err(int x) {
+  tval v;
+  v.type = TVAL_ERR;
+  v.err = x;
+  return v;
+}
+
+/* Print a "tval" */
+void tval_print(tval v) {
+  switch (v.type) {
+    /* In the case the type is a number print it */
+    /* Then 'break' out of the switch. */
+    case TVAL_NUM: printf("%li", v.num); break;
+
+    /* In the case the type is an error */
+    case TVAL_ERR:
+      /* Check what type of error it is and print it */
+      if (v.err == TERR_DIV_ZERO) {
+        printf("Errore: Ma chi ti ga dito che si puo dividere con zero?");
+      }
+      if (v.err == TERR_BAD_OP)   {
+        printf("Errore: Operatore invalido");
+      }
+      if (v.err == TERR_BAD_NUM)  {
+        printf("Errore: Non e' un vero numero");
+      }
+    break;
+  }
+}
+
+/* Print a "tval" followed by a newline */
+void tval_println(tval v) { tval_print(v); putchar('\n'); }
 
 // Helper functions
 
-long minimum(int a[] )
-
 /* Use operator string to see which operation to perform */
 // Compiling
-long eval_op(long x, char* op, long y) {
-  if (strcmp(op, "+") == 0) { return x + y; }
-  if (strcmp(op, "-") == 0) { return x - y; }
-  if (strcmp(op, "*") == 0) { return x * y; }
-  if (strcmp(op, "/") == 0) { return x / y; }
-  if (strcmp(op, "%") == 0) { return x % y; }
-  if (strcmp(op, "^") == 0) { return pow(x, y); }
-  if (strcmp(op, "min") == 0) { return ; }
-  return 0;
+tval eval_op(tval x, char* op, tval y) {
+
+	/* If either value is an error return it */
+	if (x.type == TVAL_ERR) { return x; }
+	if (y.type == TVAL_ERR) { return y; }
+
+	/* Otherwise do maths on the number values */
+	if (strcmp(op, "+") == 0) { return tval_num(x.num + y.num); }
+	if (strcmp(op, "-") == 0) { return tval_num(x.num - y.num); }
+	if (strcmp(op, "*") == 0) { return tval_num(x.num * y.num); }
+	if (strcmp(op, "/") == 0) {
+	/* If second operand is zero return error */
+	return y.num == 0
+	  ? tval_err(TERR_DIV_ZERO)
+	  : tval_num(x.num / y.num);
+	}
+	if (strcmp(op, "%") == 0) { return tval_num(x.num % y.num); }
+	if (strcmp(op, "^") == 0) { return tval_num(pow(x.num, y.num)); }
+
+	return tval_err(TERR_BAD_OP);
 }
 
-long eval(mpc_ast_t* t) {
+tval eval(mpc_ast_t* t) {
   
   /* If tagged as number return it directly. */ 
   if (strstr(t->tag, "numero")) {
-    return atoi(t->contents);
+  	errno = 0;
+  	long x = strtol(t->contents, NULL, 10);
+    return errno != ERANGE ? tval_num(x) : tval_err(TERR_BAD_NUM);
   }
   
   /* The operator is always second child. */
   char* op = t->children[1]->contents;
   
   /* We store the third child in `x` */
-  long x = eval(t->children[2]);
+  tval x = eval(t->children[2]);
   
   /* Iterate the remaining children and combining. */
   int i = 3;
@@ -70,11 +129,6 @@ long eval(mpc_ast_t* t) {
   
   return x;  
 }
-
-long leaf_count(mpc_ast_t* t) {
-
-}
-
 
 // Polish notation, using mpc.h
 int main(int argc, char** argv)
@@ -113,8 +167,8 @@ int main(int argc, char** argv)
 		mpc_result_t r;
 		if (mpc_parse("<stdin>", input, Triestin, &r)) {
 			/* On Success Print the AST */
-			long result = eval(r.output);
-			printf("%li\n", result);
+			tval result = eval(r.output);
+			tval_println(result);
 			mpc_ast_delete(r.output);
 		} else {
 			/* Otherwise Print the Error */
