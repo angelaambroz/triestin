@@ -28,29 +28,66 @@ void add_history(char* unused) {}
 enum { TERR_DIV_ZERO, TERR_BAD_OP, TERR_BAD_NUM };
 
 /* Create Enumeration of Possible tval Types */
-enum { TVAL_NUM, TVAL_ERR };
+enum { TVAL_NUM, TVAL_ERR, TVAL_SIM, TVAL_SESPR };
 
 /* Declare New tval Struct */
 typedef struct {
   int type;
   long num;
-  int err;
+  char* err;
+  char* sim;
+  int count;
+  struct tval** cell;
 } tval;
 
 /* Create a new number type tval */
-tval tval_num(long x) {
-  tval v;
-  v.type = TVAL_NUM;
-  v.num = x;
+tval* tval_num(long x) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_NUM;
+  v->num = x;
   return v;
 }
 
 /* Create a new error type tval */
-tval tval_err(int x) {
-  tval v;
-  v.type = TVAL_ERR;
-  v.err = x;
+tval* tval_err(char* m) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_ERR;
+  v->err = malloc(strlen(m) + 1);
+  strcpy(v->err, m);
   return v;
+}
+
+tval* tval_sim(char* s) {
+	tval* v = malloc(sizeof(tval));
+	v->type = TVAL_SIM;
+	v->sim = malloc(strlen(s) + 1);
+	strcpy(v->sim, s);
+	return v;
+}
+
+tval* tval_sespr(void) {
+	tval* v = malloc(sizeof(tval));
+	v->type = TVAL_SESPR;
+	v->count = 0;
+	v->cell = NULL;
+	return v;
+}
+
+void tval_del(tval* v) {
+
+	switch (v->type) {
+		case TVAL_NUM: break;
+		case TVAL_ERR: free(v->err); break;
+		case TVAL_SIM: free(v->sim); break;
+		case TVAL_SESPR:
+			for (int i = 0; i < v->count; i++) {
+				lval_del(v->cell[i])
+			}
+		free(v->cell);
+		break;
+	}
+
+	free(v);
 }
 
 /* Print a "tval" */
@@ -137,19 +174,21 @@ int main(int argc, char** argv)
 	/* Create Some Parsers */
 	// Parsing
 	mpc_parser_t* Numero   = mpc_new("numero");
-	mpc_parser_t* Operatore = mpc_new("operatore");
+	mpc_parser_t* Simbolo = mpc_new("simbolo");
 	mpc_parser_t* Espr     = mpc_new("espr");
+	mpc_parser_t* Sespr     = mpc_new("sespr");
 	mpc_parser_t* Triestin    = mpc_new("triestin");
 
 	/* Define them with the following Language */
 	mpca_lang(MPCA_LANG_DEFAULT,
 	  "                                                     \
 	    numero   : /-?[0-9]+/ ;                             \
-	    operatore : '+' | '-' | '*' | '/' ;                  \
-	    espr     : <numero> | '(' <operatore> <espr>+ ')' ;  \
-	    triestin    : /^/ <operatore> <espr>+ /$/ ;             \
+	    symbol : '+' | '-' | '*' | '/' | '%' ; \
+	    sespr : '(' <espr>* ')' ; \
+	    espr     : <numero> | <simbolo> | <sespr> ;  \
+	    triestin    : /^/ <espr>* /$/ ;             \
 	  ",
-	  Numero, Operatore, Espr, Triestin);
+	  Numero, Simbolo, Sespr, Espr, Triestin);
 
 	/* Print Version and Exit Information */
 	puts("Triestin Version 0.0.0.0.1");
@@ -181,7 +220,7 @@ int main(int argc, char** argv)
 	  }
 
 	 /* Undefine and Delete our Parsers */
-	mpc_cleanup(4, Numero, Operatore, Espr, Triestin);
+	mpc_cleanup(5, Numero, Simbolo, Sespr, Espr, Triestin);
 
 	return 0;
 
