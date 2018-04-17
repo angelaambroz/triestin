@@ -1,50 +1,42 @@
-// cc -std=c99 -Wall prompt.c mpc.c -ledit -lm -o prompt
-// Basic REPL 
+// cc -std=c99 -Wall test.c mpc.c -ledit -lm -o test
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 #include "mpc.h"
 
-// WINDOWS
-
-// #ifdef _WIN32
+#ifdef _WIN32
 
 static char buffer[2048];
 
-char* readline(char* prompt) 
-{
-	fputs(prompt, stdout);
-	fgets(buffer, 2048, stdin);
-	char* cpy = malloc(strlen(buffer)+1);
-	strcpy(cpy, buffer);
-	cpy[strlen(cpy)-1] = '\0';
-	return cpy;
+char* readline(char* prompt) {
+  fputs(prompt, stdout);
+  fgets(buffer, 2048, stdin);
+  char* cpy = malloc(strlen(buffer)+1);
+  strcpy(cpy, buffer);
+  cpy[strlen(cpy)-1] = '\0';
+  return cpy;
 }
 
 void add_history(char* unused) {}
 
-/* Create Enumeration of Possible Error Types */
-enum { TERR_DIV_ZERO, TERR_BAD_OP, TERR_BAD_NUM };
+#else
+#include <editline/readline.h>
+// #include <editline/history.h>
+#endif
 
-/* Create Enumeration of Possible tval Types */
-enum { TVAL_NUM, TVAL_ERR, TVAL_SIM, TVAL_SESPR };
+/* Add SYM and SEXPR as possible tval types */
+enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, TVAL_SESPR };
 
-/* Declare New tval Struct */
-// Linked list then?
 typedef struct tval {
   int type;
   long num;
+  /* Error and Simbolo types have some string data */
   char* err;
-  char* sim;
+  char* sym;
+  /* Count and Pointer to a list of "tval*"; */
   int count;
   struct tval** cell;
 } tval;
 
-void tval_print(tval* v);
-void tval_println(tval* v);
-
-/* Create a new number type tval */
+/* Construct a pointer to a new Numero tval */ 
 tval* tval_num(long x) {
   tval* v = malloc(sizeof(tval));
   v->type = TVAL_NUM;
@@ -52,7 +44,7 @@ tval* tval_num(long x) {
   return v;
 }
 
-/* Create a new error type tval */
+/* Construct a pointer to a new Error tval */ 
 tval* tval_err(char* m) {
   tval* v = malloc(sizeof(tval));
   v->type = TVAL_ERR;
@@ -61,62 +53,190 @@ tval* tval_err(char* m) {
   return v;
 }
 
+/* Construct a pointer to a new Simbolo tval */ 
 tval* tval_sim(char* s) {
-	tval* v = malloc(sizeof(tval));
-	v->type = TVAL_SIM;
-	v->sim = malloc(strlen(s) + 1);
-	strcpy(v->sim, s);
-	return v;
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_SIM;
+  v->sym = malloc(strlen(s) + 1);
+  strcpy(v->sym, s);
+  return v;
 }
 
+/* A pointer to a new empty Sespr tval */
 tval* tval_sespr(void) {
-	tval* v = malloc(sizeof(tval));
-	v->type = TVAL_SESPR;
-	v->count = 0;
-	v->cell = NULL;
-	return v;
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_SESPR;
+  v->count = 0;
+  v->cell = NULL;
+  return v;
 }
 
 void tval_del(tval* v) {
 
-	switch (v->type) {
-		case TVAL_NUM: break;
-		case TVAL_ERR: free(v->err); break;
-		case TVAL_SIM: free(v->sim); break;
-		case TVAL_SESPR:
-			for (int i = 0; i < v->count; i++) {
-				tval_del(v->cell[i]);
-			}
-		free(v->cell);
-		break;
-	}
-
-	free(v);
+  switch (v->type) {
+    /* Do nothing special for numero type */
+    case TVAL_NUM: break;
+    
+    /* For Err or Sym free the string data */
+    case TVAL_ERR: free(v->err); break;
+    case TVAL_SIM: free(v->sym); break;
+    
+    /* If Sespr then delete all elements inside */
+    case TVAL_SESPR:
+      for (int i = 0; i < v->count; i++) {
+        tval_del(v->cell[i]);
+      }
+      /* Also free the memory allocated to contain the pointers */
+      free(v->cell);
+    break;
+  }
+  
+  /* Free the memory allocated for the "tval" struct itself */
+  free(v);
 }
 
-/* Print a "tval" */
-void tval_espr_print(tval* v, char open, char close) {
-	putchar(open);
-	for (int i = 0; i < v->count; i++) {
-		tval_print(v->cell[i]);
+tval* tval_add(tval* v, tval* x) {
+  v->count++;
+  v->cell = realloc(v->cell, sizeof(tval*) * v->count);
+  v->cell[v->count-1] = x;
+  return v;
+}
 
-		if (i != (v->count-1)) {
-			putchar(' ');
-		}
-	}
-	putchar(close);
+tval* tval_pop(tval* v, int i) {
+  /* Find the item at "i" */
+  tval* x = v->cell[i];
+  
+  /* Shift memory after the item at "i" over the top */
+  memmove(&v->cell[i], &v->cell[i+1],
+    sizeof(tval*) * (v->count-i-1));
+  
+  /* Decrease the count of items in the list */
+  v->count--;
+  
+  /* Reallocate the memory used */
+  v->cell = realloc(v->cell, sizeof(tval*) * v->count);
+  return x;
+}
+
+tval* tval_take(tval* v, int i) {
+  tval* x = tval_pop(v, i);
+  tval_del(v);
+  return x;
+}
+
+void tval_print(tval* v);
+
+void tval_espr_print(tval* v, char open, char close) {
+  putchar(open);
+  for (int i = 0; i < v->count; i++) {
+    
+    /* Print Value contained within */
+    tval_print(v->cell[i]);
+    
+    /* Don't print trailing space if last element */
+    if (i != (v->count-1)) {
+      putchar(' ');
+    }
+  }
+  putchar(close);
 }
 
 void tval_print(tval* v) {
-	switch (v->type) {
-		case TVAL_NUM: printf("%li", v->num); break;
-		case TVAL_ERR: printf("Error: %s", v->err); break;
-		case TVAL_SIM: printf("%s", v->sim); break;
-		case TVAL_SESPR: tval_espr_print(v, '(', ')'); break;
-	}
+  switch (v->type) {
+    case TVAL_NUM:   printf("%li", v->num); break;
+    case TVAL_ERR:   printf("Error: %s", v->err); break;
+    case TVAL_SIM:   printf("%s", v->sym); break;
+    case TVAL_SESPR: tval_espr_print(v, '(', ')'); break;
+  }
 }
 
 void tval_println(tval* v) { tval_print(v); putchar('\n'); }
+
+tval* builtin_op(tval* a, char* op) {
+  
+  /* Ensure all arguments are numeros */
+  for (int i = 0; i < a->count; i++) {
+    if (a->cell[i]->type != TVAL_NUM) {
+      tval_del(a);
+      return tval_err("Non si puo operare su un non-numero.");
+    }
+  }
+  
+  /* Pop the first element */
+  tval* x = tval_pop(a, 0);
+  
+  /* If no arguments and sub then perform unary negation */
+  if ((strcmp(op, "-") == 0) && a->count == 0) {
+    x->num = -x->num;
+  }
+  
+  /* While there are still elements remaining */
+  while (a->count > 0) {
+  
+    /* Pop the next element */
+    tval* y = tval_pop(a, 0);
+    
+    /* Perform operation */
+    if (strcmp(op, "+") == 0) { x->num += y->num; }
+    if (strcmp(op, "-") == 0) { x->num -= y->num; }
+    if (strcmp(op, "*") == 0) { x->num *= y->num; }
+    if (strcmp(op, "/") == 0) {
+      if (y->num == 0) {
+        tval_del(x); tval_del(y);
+        x = tval_err("Divisione per zero.");
+        break;
+      }
+      x->num /= y->num;
+    }
+    
+    /* Delete element now finished with */
+    tval_del(y);
+  }
+  
+  /* Delete input espression and return result */
+  tval_del(a);
+  return x;
+}
+
+tval* tval_eval(tval* v);
+
+tval* tval_eval_sespr(tval* v) {
+  
+  /* Evaluate Children */
+  for (int i = 0; i < v->count; i++) {
+    v->cell[i] = tval_eval(v->cell[i]);
+  }
+  
+  /* Error Checking */
+  for (int i = 0; i < v->count; i++) {
+    if (v->cell[i]->type == TVAL_ERR) { return tval_take(v, i); }
+  }
+  
+  /* Empty Espression */
+  if (v->count == 0) { return v; }
+  
+  /* Single Espression */
+  if (v->count == 1) { return tval_take(v, 0); }
+  
+  /* Ensure First Element is Simbolo */
+  tval* f = tval_pop(v, 0);
+  if (f->type != TVAL_SIM) {
+    tval_del(f); tval_del(v);
+    return tval_err("S-espresione non inizia con un simbolo.");
+  }
+  
+  /* Call builtin with operator */
+  tval* result = builtin_op(v, f->sym);
+  tval_del(f);
+  return result;
+}
+
+tval* tval_eval(tval* v) {
+  /* Evaluate Sespressions */
+  if (v->type == TVAL_SESPR) { return tval_eval_sespr(v); }
+  /* All other tval types remain the same */
+  return v;
+}
 
 tval* tval_read_num(mpc_ast_t* t) {
   errno = 0;
@@ -125,111 +245,70 @@ tval* tval_read_num(mpc_ast_t* t) {
     tval_num(x) : tval_err("numero invalido");
 }
 
-tval* tval_add(tval* v, tval* x) {
-	v->count++;
-	v->cell = realloc(v->cell, sizeof(tval*) * v->count);
-	v->cell[v->count-1] = x;
-	return v;
-}
-
 tval* tval_read(mpc_ast_t* t) {
-
-	if (strstr(t->tag, "numero")) { return tval_read_num(t); }
-	if (strstr(t->tag, "simbolo")) { return tval_sim(t->contents); }
-
-	tval* x = NULL;
-	if (strcmp(t->tag, ">") == 0) { x = tval_sespr(); }
-	if (strcmp(t->tag, "sespr")) { x = tval_sespr(); }
-
-	for (int i = 0; i < t->children_num; i++) {
-		if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
-		if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
-		if (strcmp(t->children[i]->tag, "regex") == 0) { continue; }
-		x = tval_add(x, tval_read(t->children[i]));
-	}
-
-	return x;
-
+  
+  /* If Simbolo or Numero return conversion to that type */
+  if (strstr(t->tag, "numero")) { return tval_read_num(t); }
+  if (strstr(t->tag, "simbolo")) { return tval_sim(t->contents); }
+  
+  /* If root (>) or sespr then create empty list */
+  tval* x = NULL;
+  if (strcmp(t->tag, ">") == 0) { x = tval_sespr(); } 
+  if (strstr(t->tag, "sespr"))  { x = tval_sespr(); }
+  
+  /* Fill this list with any valid espression contained within */
+  for (int i = 0; i < t->children_num; i++) {
+    if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
+    if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
+    if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
+    x = tval_add(x, tval_read(t->children[i]));
+  }
+  
+  return x;
 }
 
-/* Use operator string to see which operation to perform */
-// Compiling
-// tval* eval_op(tval* x, char* op, tval* y) {
-
-// 	/* If either value is an error return it */
-// 	if (x->type == TVAL_ERR) { return x; }
-// 	if (y->type == TVAL_ERR) { return y; }
-
-// 	/* Otherwise do maths on the number values */
-// 	if (strcmp(op, "+") == 0) { return x->num += y->num; }
-// 	if (strcmp(op, "-") == 0) { return x->num -= y->num; }
-// 	if (strcmp(op, "*") == 0) { return x->num *= y->num; }
-// 	if (strcmp(op, "/") == 0) {
-// 	/* If second operand is zero return error */
-// 	return y->num == 0
-// 	  ? tval_err(TERR_DIV_ZERO)
-// 	  : x->num /= y->num;
-// 	}
-// 	// if (strcmp(op, "%") == 0) { return x->num % y->num; }
-// 	// if (strcmp(op, "^") == 0) { return pow(x->num, y->num); }
-
-// 	return tval_err(TERR_BAD_OP);
-// }
-
-// Polish notation, using mpc.h
-int main(int argc, char** argv)
-{
-
-	/* Create Some Parsers */
-	// Parsing
-	mpc_parser_t* Numero   = mpc_new("numero");
-	mpc_parser_t* Simbolo = mpc_new("simbolo");
-	mpc_parser_t* Espr     = mpc_new("espr");
-	mpc_parser_t* Sespr     = mpc_new("sespr");
-	mpc_parser_t* Triestin    = mpc_new("triestin");
-
-	/* Define them with the following Language */
-	mpca_lang(MPCA_LANG_DEFAULT,
-	  "                                                     \
-	    numero   : /-?[0-9]+/ ;                             \
-	    symbol : '+' | '-' | '*' | '/' | '%' ; \
-	    sespr : '(' <espr>* ')' ; \
-	    espr     : <numero> | <simbolo> | <sespr> ;  \
-	    triestin    : /^/ <espr>* /$/ ;             \
-	  ",
-	  Numero, Simbolo, Sespr, Espr, Triestin);
-
-	/* Print Version and Exit Information */
-	puts("Triestin Version 0.0.0.0.1");
-	puts("svilupatto con <3");
-	puts("fracca Ctrl+c per fugire\n");
-
-	  // REPL
-	  while (1) {
-
-	    /* Output our prompt */
-	    char* input = readline("triestin> ");
-	    add_history(input);
-
-	    /* Attempt to Parse the user Input */
-		mpc_result_t r;
-		/* On Success Print the AST */
-		tval* x = tval_read(r.output);
-		tval_println(x);
-		tval_del(x);
-
-		free(input);
-
-	  }
-
-	 /* Undefine and Delete our Parsers */
-	mpc_cleanup(5, Numero, Simbolo, Sespr, Espr, Triestin);
-
-	return 0;
-
+int main(int argc, char** argv) {
+  
+  mpc_parser_t* Numero = mpc_new("numero");
+  mpc_parser_t* Simbolo = mpc_new("simbolo");
+  mpc_parser_t* Sespr  = mpc_new("sespr");
+  mpc_parser_t* Espr   = mpc_new("espr");
+  mpc_parser_t* Triestin  = mpc_new("triestin");
+  
+  mpca_lang(MPCA_LANG_DEFAULT,
+    "                                          \
+      numero : /-?[0-9]+/ ;                    \
+      simbolo : '+' | '-' | '*' | '/' ;         \
+      sespr  : '(' <espr>* ')' ;               \
+      espr   : <numero> | <simbolo> | <sespr> ; \
+      triestin  : /^/ <espr>* /$/ ;               \
+    ",
+    Numero, Simbolo, Sespr, Espr, Triestin);
+  
+  puts("Triestin Version 0.0.0.0.5");
+  puts("Press Ctrl+c to Exit\n");
+  
+  while (1) {
+  
+    char* input = readline("triestin> ");
+    add_history(input);
+    
+    mpc_result_t r;
+    if (mpc_parse("<stdin>", input, Triestin, &r)) {
+      tval* x = tval_eval(tval_read(r.output));
+      tval_println(x);
+      tval_del(x);
+      mpc_ast_delete(r.output);
+    } else {    
+      mpc_err_print(r.error);
+      mpc_err_delete(r.error);
+    }
+    
+    free(input);
+    
+  }
+  
+  mpc_cleanup(5, Numero, Simbolo, Sespr, Espr, Triestin);
+  
+  return 0;
 }
-
-
-
-
-
