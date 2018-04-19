@@ -1,4 +1,4 @@
-// cc -std=c99 -Wall test.c mpc.c -ledit -lm -o test
+// cc -std=c99 -Wall trst.c mpc.c -ledit -lm -o trst
 
 #include "mpc.h"
 
@@ -180,6 +180,7 @@ tval* builtin_op(tval* a, char* op) {
     if (strcmp(op, "+") == 0) { x->num += y->num; }
     if (strcmp(op, "-") == 0) { x->num -= y->num; }
     if (strcmp(op, "*") == 0) { x->num *= y->num; }
+    if (strcmp(op, "%") == 0) { x->num = x->num % y->num; }
     if (strcmp(op, "/") == 0) {
       if (y->num == 0) {
         tval_del(x); tval_del(y);
@@ -278,7 +279,7 @@ int main(int argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
     "                                          \
       numero : /-?[0-9]+/ ;                    \
-      simbolo : '+' | '-' | '*' | '/' ;         \
+      simbolo : '+' | '-' | '*' | '/' | '%' ;         \
       sespr  : '(' <espr>* ')' ;               \
       espr   : <numero> | <simbolo> | <sespr> ; \
       triestin  : /^/ <espr>* /$/ ;               \
@@ -286,7 +287,8 @@ int main(int argc, char** argv) {
     Numero, Simbolo, Sespr, Espr, Triestin);
   
   puts("Triestin Version 0.0.0.0.5");
-  puts("Press Ctrl+c to Exit\n");
+  puts("Creato con <3");
+  puts("Per uscire, ctrl+C\n");
   
   while (1) {
   
