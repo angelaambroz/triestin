@@ -22,10 +22,16 @@ void add_history(char* unused) {}
 // #include <editline/history.h>
 #endif
 
-#define TASSERT(args, cond, err) \
-  if (!(cond)) { tval_del(args); return tval_err(err); }
+#define TASSERT(args, cond, err) if (!(cond)) { tval_del(args); return tval_err(err); }
 
-enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, TVAL_SESPR, TVAL_QESPR };
+// Forward declarations
+struct tval;
+struct tenv;
+typedef struct tval tval;
+typedef struct tenv tenv;
+
+enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, 
+    TVAL_FUN, TVAL_SESPR, TVAL_QESPR };
 
 typedef struct tval {
   int type;
@@ -133,10 +139,6 @@ tval* tval_pop(tval* v, int i) {
   /* Reallocate the memory used */
   v->cell = realloc(v->cell, sizeof(tval*) * v->count);
   return x;
-}
-
-tval* tval_spinta_bassa(tval* v) {
-  
 }
 
 tval* tval_spinta(tval* x, tval* y) {
