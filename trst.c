@@ -22,19 +22,26 @@ void add_history(char* unused) {}
 // #include <editline/history.h>
 #endif
 
+#define TASSERT(args, cond, err) \
+  if (!(cond)) { tval_del(args); return tval_err(err); }
+
 /* Add SYM and SEXPR as possible tval types */
-enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, TVAL_SESPR };
+enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, TVAL_SESPR, TVAL_QESPR };
 
 typedef struct tval {
   int type;
   long num;
   /* Error and Simbolo types have some string data */
   char* err;
-  char* sym;
+  char* sim;
   /* Count and Pointer to a list of "tval*"; */
   int count;
   struct tval** cell;
 } tval;
+
+
+tval* tval_eval(tval* v);
+tval* tval_aderire(tval* x, tval* y);
 
 /* Construct a pointer to a new Numero tval */ 
 tval* tval_num(long x) {
@@ -57,8 +64,8 @@ tval* tval_err(char* m) {
 tval* tval_sim(char* s) {
   tval* v = malloc(sizeof(tval));
   v->type = TVAL_SIM;
-  v->sym = malloc(strlen(s) + 1);
-  strcpy(v->sym, s);
+  v->sim = malloc(strlen(s) + 1);
+  strcpy(v->sim, s);
   return v;
 }
 
@@ -66,6 +73,14 @@ tval* tval_sim(char* s) {
 tval* tval_sespr(void) {
   tval* v = malloc(sizeof(tval));
   v->type = TVAL_SESPR;
+  v->count = 0;
+  v->cell = NULL;
+  return v;
+}
+
+tval* tval_qespr(void) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_QESPR;
   v->count = 0;
   v->cell = NULL;
   return v;
@@ -79,10 +94,11 @@ void tval_del(tval* v) {
     
     /* For Err or Sym free the string data */
     case TVAL_ERR: free(v->err); break;
-    case TVAL_SIM: free(v->sym); break;
+    case TVAL_SIM: free(v->sim); break;
     
     /* If Sespr then delete all elements inside */
     case TVAL_SESPR:
+    case TVAL_QESPR:
       for (int i = 0; i < v->count; i++) {
         tval_del(v->cell[i]);
       }
@@ -145,8 +161,9 @@ void tval_print(tval* v) {
   switch (v->type) {
     case TVAL_NUM:   printf("%li", v->num); break;
     case TVAL_ERR:   printf("Error: %s", v->err); break;
-    case TVAL_SIM:   printf("%s", v->sym); break;
+    case TVAL_SIM:   printf("%s", v->sim); break;
     case TVAL_SESPR: tval_espr_print(v, '(', ')'); break;
+    case TVAL_QESPR: tval_espr_print(v, '{', '}'); break;
   }
 }
 
@@ -199,7 +216,71 @@ tval* builtin_op(tval* a, char* op) {
   return x;
 }
 
-tval* tval_eval(tval* v);
+tval* builtin_testa(tval* a) {
+  TASSERT(a, a->count == 1, "`testa` ha troppi argomenti.");
+  TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`testa` ha passato tipi sbagliati.");
+  TASSERT(a, a->cell[0]->count != 0, "`testa` ha passato {}.");
+  tval* v = tval_take(a, 0);
+  while (v->count > 1) { tval_del(tval_pop(v, 1)); }
+  return v;
+}
+
+tval* builtin_coda(tval* a) {
+  TASSERT(a, a->count == 1, "`testa` ha troppi argomenti.");
+  TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`testa` ha passato tipi sbagliati.");
+  TASSERT(a, a->cell[0]->count != 0, "`testa` ha passato {}.");
+  tval* v = tval_take(a, 0);
+  tval_del(tval_pop(v, 0));
+  return v;
+}
+
+tval* builtin_lista(tval* a) {
+  a->type = TVAL_QESPR;
+  return a;
+}
+
+tval* builtin_valu(tval* a) {
+  TASSERT(a, a->count == 1, "`valu` ha troppi argomenti.");
+  TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`valu` ha passato tipi sbagliati.");
+  tval* x = tval_take(a, 0);
+  x->type = TVAL_SESPR;
+  return tval_eval(x);
+}
+
+tval* builtin_aderire(tval* a) {
+  for (int i = 0; i < a->count; i++) {
+    TASSERT(a, a->cell[i]->type == TVAL_QESPR, "`aderire` ha passato tipi sbagliati.");
+  }
+
+  tval* x = tval_pop(a, 0);
+
+  while (a->count) {
+    x = tval_aderire(x, tval_pop(a, 0));
+  }
+
+  tval_del(a);
+  return x;
+}
+
+tval* builtin(tval* a, char* func) {
+  if (strcmp("lista", func) == 0) { return builtin_lista(a); }
+  if (strcmp("testa", func) == 0) { return builtin_testa(a); }
+  if (strcmp("coda", func) == 0) { return builtin_coda(a); }
+  if (strcmp("aderire", func) == 0) { return builtin_aderire(a); }
+  if (strcmp("valu", func) == 0) { return builtin_valu(a); }
+  if (strcmp("+-/*", func) == 0) { return builtin_op(a, func); }
+  tval_del(a);
+  return tval_err("Cosa?");
+}
+
+
+tval* tval_aderire(tval* x, tval* y) {
+  while (y->count) {
+    x = tval_add(x, tval_pop(y, 0));
+  }
+  tval_del(y);
+  return x;
+}
 
 tval* tval_eval_sespr(tval* v) {
   
@@ -227,7 +308,7 @@ tval* tval_eval_sespr(tval* v) {
   }
   
   /* Call builtin with operator */
-  tval* result = builtin_op(v, f->sym);
+  tval* result = builtin(v, f->sim);
   tval_del(f);
   return result;
 }
@@ -256,11 +337,14 @@ tval* tval_read(mpc_ast_t* t) {
   tval* x = NULL;
   if (strcmp(t->tag, ">") == 0) { x = tval_sespr(); } 
   if (strstr(t->tag, "sespr"))  { x = tval_sespr(); }
+  if (strstr(t->tag, "qespr"))  { x = tval_qespr(); }
   
   /* Fill this list with any valid espression contained within */
   for (int i = 0; i < t->children_num; i++) {
     if (strcmp(t->children[i]->contents, "(") == 0) { continue; }
     if (strcmp(t->children[i]->contents, ")") == 0) { continue; }
+    if (strcmp(t->children[i]->contents, "{") == 0) { continue; }
+    if (strcmp(t->children[i]->contents, "}") == 0) { continue; }
     if (strcmp(t->children[i]->tag,  "regex") == 0) { continue; }
     x = tval_add(x, tval_read(t->children[i]));
   }
@@ -273,20 +357,23 @@ int main(int argc, char** argv) {
   mpc_parser_t* Numero = mpc_new("numero");
   mpc_parser_t* Simbolo = mpc_new("simbolo");
   mpc_parser_t* Sespr  = mpc_new("sespr");
+  mpc_parser_t* Qespr  = mpc_new("qespr");
   mpc_parser_t* Espr   = mpc_new("espr");
   mpc_parser_t* Triestin  = mpc_new("triestin");
   
   mpca_lang(MPCA_LANG_DEFAULT,
     "                                          \
       numero : /-?[0-9]+/ ;                    \
-      simbolo : '+' | '-' | '*' | '/' | '%' ;         \
+      simbolo : \"lista\" | \"testa\" | \"coda\" | \"valu\" \
+              | \"aderire\" | '+' | '-' | '*' | '/' | '%' ;  \
       sespr  : '(' <espr>* ')' ;               \
-      espr   : <numero> | <simbolo> | <sespr> ; \
+      qespr  : '{' <espr>* '}' ;               \
+      espr   : <numero> | <simbolo> | <sespr> | <qespr> ; \
       triestin  : /^/ <espr>* /$/ ;               \
     ",
-    Numero, Simbolo, Sespr, Espr, Triestin);
+    Numero, Simbolo, Sespr, Qespr, Espr, Triestin);
   
-  puts("Triestin Version 0.0.0.0.5");
+  puts("Triestin Version 0.0.0.0.10");
   puts("Creato con <3");
   puts("Per uscire, ctrl+C\n");
   
@@ -301,7 +388,7 @@ int main(int argc, char** argv) {
       tval_println(x);
       tval_del(x);
       mpc_ast_delete(r.output);
-    } else {    
+    } else {
       mpc_err_print(r.error);
       mpc_err_delete(r.error);
     }
@@ -310,7 +397,7 @@ int main(int argc, char** argv) {
     
   }
   
-  mpc_cleanup(5, Numero, Simbolo, Sespr, Espr, Triestin);
+  mpc_cleanup(6, Numero, Simbolo, Sespr, Qespr, Espr, Triestin);
   
   return 0;
 }
