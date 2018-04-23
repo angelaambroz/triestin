@@ -25,11 +25,11 @@ void add_history(char* unused) {}
 #define TASSERT(args, cond, err) \
   if (!(cond)) { tval_del(args); return tval_err(err); }
 
-/* Add SYM and SEXPR as possible tval types */
 enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, TVAL_SESPR, TVAL_QESPR };
 
 typedef struct tval {
   int type;
+  // Just a plain ol' number
   long num;
   /* Error and Simbolo types have some string data */
   char* err;
@@ -42,6 +42,7 @@ typedef struct tval {
 
 tval* tval_eval(tval* v);
 tval* tval_aderire(tval* x, tval* y);
+void tval_print(tval* v);
 
 /* Construct a pointer to a new Numero tval */ 
 tval* tval_num(long x) {
@@ -134,13 +135,46 @@ tval* tval_pop(tval* v, int i) {
   return x;
 }
 
+tval* tval_spinta_bassa(tval* v) {
+  
+}
+
+tval* tval_spinta(tval* x, tval* y) {
+  tval_print(x);
+  printf("\n");
+  tval_print(y);
+  printf("\n");
+  printf("The x count is %d\n", x->count);
+  printf("The first cell is ");
+  tval_print(x->cell[0]);
+  printf("\n");
+
+  // Lengthen mem space
+  x->cell = realloc(x->cell, sizeof(tval*) * x->count+1);
+
+  // Shift everything down by 1
+  for (int i = 0; i < x->count; i++) {
+    memmove(&x->cell[i+1], &x->cell[i], sizeof(tval*));
+  }
+
+  // Add y thing to cell
+  x->cell[0] = y;
+
+  // Iterate counter
+  x->count++;
+
+  // Make it all a qespr
+  x->type = TVAL_QESPR;
+
+  return x;
+
+}
+
 tval* tval_take(tval* v, int i) {
   tval* x = tval_pop(v, i);
   tval_del(v);
   return x;
 }
-
-void tval_print(tval* v);
 
 void tval_espr_print(tval* v, char open, char close) {
   putchar(open);
@@ -225,10 +259,16 @@ tval* builtin_testa(tval* a) {
   return v;
 }
 
+tval* builtin_lung(tval* a) {
+  TASSERT(a, a->count == 1, "`lung` ha troppi argomenti.");
+  TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`lung` ha passato tipi sbagliati.");
+  return tval_num(a->cell[0]->count);
+}
+
 tval* builtin_coda(tval* a) {
-  TASSERT(a, a->count == 1, "`testa` ha troppi argomenti.");
-  TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`testa` ha passato tipi sbagliati.");
-  TASSERT(a, a->cell[0]->count != 0, "`testa` ha passato {}.");
+  TASSERT(a, a->count == 1, "`coda` ha troppi argomenti.");
+  TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`coda` ha passato tipi sbagliati.");
+  TASSERT(a, a->cell[0]->count != 0, "`coda` ha passato {}.");
   tval* v = tval_take(a, 0);
   tval_del(tval_pop(v, 0));
   return v;
@@ -262,12 +302,23 @@ tval* builtin_aderire(tval* a) {
   return x;
 }
 
+tval* builtin_spinta(tval* a) {
+  // TASSERT(a, a->count == 0, "`spinta` non ha abbastanza argomenti.");
+  TASSERT(a, a->cell[0]->type == TVAL_NUM, "`spinta` accetta un numero e un qespr.");
+  TASSERT(a, a->cell[1]->type == TVAL_QESPR, "`spinta` accetta un numero e un qespr.");
+  tval* x = tval_pop(a, 0);
+  return tval_spinta(a, x);
+}
+
+
 tval* builtin(tval* a, char* func) {
   if (strcmp("lista", func) == 0) { return builtin_lista(a); }
   if (strcmp("testa", func) == 0) { return builtin_testa(a); }
   if (strcmp("coda", func) == 0) { return builtin_coda(a); }
   if (strcmp("aderire", func) == 0) { return builtin_aderire(a); }
   if (strcmp("valu", func) == 0) { return builtin_valu(a); }
+  if (strcmp("lung", func) == 0) { return builtin_lung(a); }
+  if (strcmp("spinta", func) == 0) { return builtin_spinta(a); }
   if (strcmp("+-/*", func) == 0) { return builtin_op(a, func); }
   tval_del(a);
   return tval_err("Cosa?");
@@ -294,10 +345,10 @@ tval* tval_eval_sespr(tval* v) {
     if (v->cell[i]->type == TVAL_ERR) { return tval_take(v, i); }
   }
   
-  /* Empty Espression */
+  /* Empty Expression */
   if (v->count == 0) { return v; }
   
-  /* Single Espression */
+  /* Single Expression */
   if (v->count == 1) { return tval_take(v, 0); }
   
   /* Ensure First Element is Simbolo */
@@ -365,7 +416,8 @@ int main(int argc, char** argv) {
     "                                          \
       numero : /-?[0-9]+/ ;                    \
       simbolo : \"lista\" | \"testa\" | \"coda\" | \"valu\" \
-              | \"aderire\" | '+' | '-' | '*' | '/' | '%' ;  \
+              | \"aderire\" | \"lung\" | \"spinta\" \
+              | '+' | '-' | '*' | '/' | '%' ;  \
       sespr  : '(' <espr>* ')' ;               \
       qespr  : '{' <espr>* '}' ;               \
       espr   : <numero> | <simbolo> | <sespr> | <qespr> ; \
