@@ -33,22 +33,133 @@ typedef struct tenv tenv;
 enum { TVAL_ERR, TVAL_NUM, TVAL_SIM, 
     TVAL_FUN, TVAL_SESPR, TVAL_QESPR };
 
-typedef struct tval {
+typedef tval*(*tbuiltin)(tenv*, tval*);
+
+struct tval {
   int type;
-  // Just a plain ol' number
   long num;
-  /* Error and Simbolo types have some string data */
   char* err;
   char* sim;
-  /* Count and Pointer to a list of "tval*"; */
+  tbuiltin fun;
   int count;
-  struct tval** cell;
-} tval;
+  tval** cell;
+};
 
+struct tenv {
+  int count;
+  char** sims;
+  tval** vals;
+};
 
+// More forward declarations
 tval* tval_eval(tval* v);
 tval* tval_aderire(tval* x, tval* y);
 void tval_print(tval* v);
+void tval_del(tval* v);
+
+/* Builtin Functions */
+tval* tval_fun(tbuiltin func) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_FUN;
+  v->fun = func;
+  return v;
+}
+
+/* Copying */
+tval* tval_copy(tval* v) {
+
+  tval* x = malloc(sizeof(tval));
+  x->type = v->type;
+
+  switch (v->type) {
+
+    /* Copy Functions and Numbers Directly */
+    case TVAL_FUN: x->fun = v->fun; break;
+    case TVAL_NUM: x->num = v->num; break;
+
+    /* Copy Strings using malloc and strcpy */
+    case TVAL_ERR:
+      x->err = malloc(strlen(v->err) + 1);
+      strcpy(x->err, v->err); break;
+
+    case TVAL_SIM:
+      x->sim = malloc(strlen(v->sim) + 1);
+      strcpy(x->sim, v->sim); break;
+
+    /* Copy Lists by copying each sub-expression */
+    case TVAL_SESPR:
+    case TVAL_QESPR:
+      x->count = v->count;
+      x->cell = malloc(sizeof(tval*) * x->count);
+      for (int i = 0; i < x->count; i++) {
+        x->cell[i] = tval_copy(v->cell[i]);
+      }
+    break;
+  }
+
+  return x;
+}
+
+// Create, delete environment
+tenv* tenv_new(void) {
+  tenv* e = malloc(sizeof(tenv));
+  e->count = 0;
+  e->sims = NULL;
+  e->vals = NULL;
+  return e;
+}
+
+void tenv_del(tenv* e) {
+  for (int i = 0; i < e->count; i++) {
+    free(e->sims[i]);
+    tval_del(e->vals[i]);
+  }
+  free(e->sims);
+  free(e->vals);
+  free(e);
+}
+
+// Loop through the environment and check for stuff
+tval* tenv_get(tenv* e, tval* k) {
+
+  /* Iterate over all items in environment */
+  for (int i = 0; i < e->count; i++) {
+    /* Check if the stored string matches the symbol string */
+    /* If it does, return a copy of the value */
+    if (strcmp(e->sims[i], k->sim) == 0) {
+      return tval_copy(e->vals[i]);
+    }
+  }
+  /* If no symbol found return error */
+  return tval_err("unbound symbol!");
+}
+
+void tenv_put(tenv* e, tval* k, tval* v) {
+
+  /* Iterate over all items in environment */
+  /* This is to see if variable already exists */
+  for (int i = 0; i < e->count; i++) {
+
+    /* If variable is found delete item at that position */
+    /* And replace with variable supplied by user */
+    if (strcmp(e->sims[i], k->sim) == 0) {
+      tval_del(e->vals[i]);
+      e->vals[i] = tval_copy(v);
+      return;
+    }
+  }
+
+  /* If no existing entry found allocate space for new entry */
+  e->count++;
+  e->vals = realloc(e->vals, sizeof(tval*) * e->count);
+  e->sims = realloc(e->sims, sizeof(char*) * e->count);
+
+  /* Copy contents of tval and symbol string into new location */
+  e->vals[e->count-1] = tval_copy(v);
+  e->sims[e->count-1] = malloc(strlen(k->sim)+1);
+  strcpy(e->sims[e->count-1], k->sim);
+}
+
 
 /* Construct a pointer to a new Numero tval */ 
 tval* tval_num(long x) {
@@ -205,7 +316,7 @@ void tval_print(tval* v) {
 
 void tval_println(tval* v) { tval_print(v); putchar('\n'); }
 
-tval* builtin_op(tval* a, char* op) {
+tval* builtin_op(tenv* e, tval* a, char* op) {
   
   /* Ensure all arguments are numeros */
   for (int i = 0; i < a->count; i++) {
@@ -252,7 +363,7 @@ tval* builtin_op(tval* a, char* op) {
   return x;
 }
 
-tval* builtin_testa(tval* a) {
+tval* builtin_testa(tenv* e, tval* a) {
   TASSERT(a, a->count == 1, "`testa` ha troppi argomenti.");
   TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`testa` ha passato tipi sbagliati.");
   TASSERT(a, a->cell[0]->count != 0, "`testa` ha passato {}.");
@@ -261,13 +372,13 @@ tval* builtin_testa(tval* a) {
   return v;
 }
 
-tval* builtin_lung(tval* a) {
+tval* builtin_lung(tenv* e, tval* a) {
   TASSERT(a, a->count == 1, "`lung` ha troppi argomenti.");
   TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`lung` ha passato tipi sbagliati.");
   return tval_num(a->cell[0]->count);
 }
 
-tval* builtin_coda(tval* a) {
+tval* builtin_coda(tenv* e, tval* a) {
   TASSERT(a, a->count == 1, "`coda` ha troppi argomenti.");
   TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`coda` ha passato tipi sbagliati.");
   TASSERT(a, a->cell[0]->count != 0, "`coda` ha passato {}.");
@@ -276,12 +387,12 @@ tval* builtin_coda(tval* a) {
   return v;
 }
 
-tval* builtin_lista(tval* a) {
+tval* builtin_lista(tenv* e, tval* a) {
   a->type = TVAL_QESPR;
   return a;
 }
 
-tval* builtin_valu(tval* a) {
+tval* builtin_valu(tenv* e, tval* a) {
   TASSERT(a, a->count == 1, "`valu` ha troppi argomenti.");
   TASSERT(a, a->cell[0]->type == TVAL_QESPR, "`valu` ha passato tipi sbagliati.");
   tval* x = tval_take(a, 0);
@@ -289,7 +400,7 @@ tval* builtin_valu(tval* a) {
   return tval_eval(x);
 }
 
-tval* builtin_aderire(tval* a) {
+tval* builtin_aderire(tenv* e, tval* a) {
   for (int i = 0; i < a->count; i++) {
     TASSERT(a, a->cell[i]->type == TVAL_QESPR, "`aderire` ha passato tipi sbagliati.");
   }
@@ -304,7 +415,7 @@ tval* builtin_aderire(tval* a) {
   return x;
 }
 
-tval* builtin_spinta(tval* a) {
+tval* builtin_spinta(tenv* e, tval* a) {
   // TASSERT(a, a->count == 0, "`spinta` non ha abbastanza argomenti.");
   TASSERT(a, a->cell[0]->type == TVAL_NUM, "`spinta` accetta un numero e un qespr.");
   TASSERT(a, a->cell[1]->type == TVAL_QESPR, "`spinta` accetta un numero e un qespr.");
@@ -313,15 +424,15 @@ tval* builtin_spinta(tval* a) {
 }
 
 
-tval* builtin(tval* a, char* func) {
-  if (strcmp("lista", func) == 0) { return builtin_lista(a); }
-  if (strcmp("testa", func) == 0) { return builtin_testa(a); }
-  if (strcmp("coda", func) == 0) { return builtin_coda(a); }
-  if (strcmp("aderire", func) == 0) { return builtin_aderire(a); }
-  if (strcmp("valu", func) == 0) { return builtin_valu(a); }
-  if (strcmp("lung", func) == 0) { return builtin_lung(a); }
-  if (strcmp("spinta", func) == 0) { return builtin_spinta(a); }
-  if (strcmp("+-/*", func) == 0) { return builtin_op(a, func); }
+tval* builtin(tenv* e, tval* a, char* func) {
+  if (strcmp("lista", func) == 0) { return builtin_lista(e, a); }
+  if (strcmp("testa", func) == 0) { return builtin_testa(e, a); }
+  if (strcmp("coda", func) == 0) { return builtin_coda(e, a); }
+  if (strcmp("aderire", func) == 0) { return builtin_aderire(e, a); }
+  if (strcmp("valu", func) == 0) { return builtin_valu(e, a); }
+  if (strcmp("lung", func) == 0) { return builtin_lung(e, a); }
+  if (strcmp("spinta", func) == 0) { return builtin_spinta(e, a); }
+  if (strcmp("+-/*", func) == 0) { return builtin_op(e, a, func); }
   tval_del(a);
   return tval_err("Cosa?");
 }
@@ -335,7 +446,7 @@ tval* tval_aderire(tval* x, tval* y) {
   return x;
 }
 
-tval* tval_eval_sespr(tval* v) {
+tval* tval_eval_sespr(tval* e, tval* v) {
   
   /* Evaluate Children */
   for (int i = 0; i < v->count; i++) {
@@ -355,20 +466,26 @@ tval* tval_eval_sespr(tval* v) {
   
   /* Ensure First Element is Simbolo */
   tval* f = tval_pop(v, 0);
-  if (f->type != TVAL_SIM) {
+  if (f->type != TVAL_FUN) {
     tval_del(f); tval_del(v);
-    return tval_err("S-espresione non inizia con un simbolo.");
+    return tval_err("Il primo elemento non e' un function.");
   }
   
   /* Call builtin with operator */
-  tval* result = builtin(v, f->sim);
+  tval* result = f->fun(e, v);
   tval_del(f);
   return result;
 }
 
-tval* tval_eval(tval* v) {
+tval* tval_eval(tenv* e, tval* v) {
   /* Evaluate Sespressions */
-  if (v->type == TVAL_SESPR) { return tval_eval_sespr(v); }
+  if (v->type == TVAL_SIM) 
+    { 
+      tval* x = tenv_get(e, v);
+      tval_del(v);
+      return x;
+    }
+  if (v->type == TVAL_SESPR) { return tval_eval_sespr(e, v); }
   /* All other tval types remain the same */
   return v;
 }
@@ -417,9 +534,7 @@ int main(int argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
     "                                          \
       numero : /-?[0-9]+/ ;                    \
-      simbolo : \"lista\" | \"testa\" | \"coda\" | \"valu\" \
-              | \"aderire\" | \"lung\" | \"spinta\" \
-              | '+' | '-' | '*' | '/' | '%' ;  \
+      simbolo : /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;  \
       sespr  : '(' <espr>* ')' ;               \
       qespr  : '{' <espr>* '}' ;               \
       espr   : <numero> | <simbolo> | <sespr> | <qespr> ; \
