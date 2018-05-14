@@ -28,7 +28,9 @@ class Tokenizer():
         
         # the user-sourced code
         with open(filename, 'r') as f:
-            self.code = [x.replace('\n', '') for x in f.readlines()]
+            self.code = [x.replace('\n', '').split() for x in f.readlines()]
+
+        print(self.code)
         
     def tokenize(self):
         tokens = []
@@ -48,10 +50,65 @@ for i in tokens:
     print(i)
 
 # Parser
+class DefNode():
+    def __init__(self, name, arg_names, body):
+        self.name = name
+        self.arg_names = arg_names
+        self.body = body
+
+    def __str__(self):
+        return f"DefNode(name='{self.name}', args='{self.arg_names}', body='{self.body}'"
+
+class IntegerNode():
+    def __init__(self, value):
+        self.value = int(value)
+
+    def __str__(self):
+        return f"IntegerNode(value={self.value})"
+
+class Parser():
+    def __init__(self, list_of_tokens):
+        self.tokens = list_of_tokens
+
+    def parse(self):
+        return self.parse_def()
+
+    def parse_def(self):
+        self.consume('def')
+        name = self.consume('identifier').value
+        arg_names = self.parse_arg_names()
+        body = self.parse_expr()
+        self.consume('fin')
+        return DefNode(name, arg_names, body)
+
+    def parse_arg_names(self):
+        self.consume('oparen')
+        # stuff in here
+        args = []
+        self.consume('cparen')
+        return args
+
+    def parse_expr(self):
+        return self.parse_integer()
+
+    def parse_integer(self):
+        return IntegerNode(self.consume('integer').value)
+
+    def consume(self, expected_type):
+        token = self.tokens.pop(0)
+        if token.tipo == expected_type:
+            return token
+        else:
+            raise RuntimeError(f"Expected {expected_type}, got {token.tipo}.")
 
 
+
+tree = Parser(tokens).parse()
+print(tree)
 
 
 # Code generator
 
 # Compile to C, our definition
+
+
