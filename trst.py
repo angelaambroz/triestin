@@ -28,24 +28,31 @@ class Tokenizer():
         
         # the user-sourced code
         with open(filename, 'r') as f:
-            self.code = [x.replace('\n', '').split() for x in f.readlines()]
-
-        print(self.code)
+            self.code = f.read().replace('\n', '')
         
     def tokenize(self):
         tokens = []
-        for chunk in self.code:
-            tokens.append(self.tokenize_one_token(chunk))
+        code = self.code
+        tokens.append(self.tokenize_one_token(code, tokens))
 
-        return tokens
+        # Due to recursion, things got switched around - switching them back
+        tokens_final = [x for x in tokens if x != None] 
+        tokens_final.reverse()
+
+        return tokens_final
                     
-    def tokenize_one_token(self, chunk):
+    def tokenize_one_token(self, chunk, list_of_tokens):
+        """Now recursive!"""
         for (tipo, rgx_) in self.TOKEN_TYPES:
             z = re.findall(rgx_, chunk)
             if z:
-                return Token(tipo, z[0])
+                code = chunk.replace(z[0], '')
+                token = Token(tipo, z[0])
+                list_of_tokens.append(self.tokenize_one_token(code, list_of_tokens))
+                return token
 
 tokens = Tokenizer("trst.src").tokenize()
+print(tokens)
 for i in tokens:
     print(i)
 
@@ -103,8 +110,8 @@ class Parser():
 
 
 
-tree = Parser(tokens).parse()
-print(tree)
+# tree = Parser(tokens).parse()
+# print(tree)
 
 
 # Code generator
