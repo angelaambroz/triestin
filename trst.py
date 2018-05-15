@@ -68,6 +68,21 @@ class IntegerNode():
     def __str__(self):
         return f"IntegerNode(val={self.val})"
 
+class CallNode():
+    def __init__(self, name, arg_exprs):
+        self.name = name
+        self.arg_exprs = arg_exprs
+
+    def __str__(self):
+        return f"CallNode(name={self.name.val}, arg_exprs={self.arg_exprs})"
+
+class VarRefNode():
+    def __init__(self, val):
+        self.val = val
+
+    def __str__(self):
+        return f"VarRefNode(val={self.val}"
+
 class Parser():
     def __init__(self, list_of_tokens):
         self.tokens = list_of_tokens
@@ -96,10 +111,35 @@ class Parser():
         return args
 
     def parse_expr(self):
-        return self.parse_integer()
+        if self.peek('integer'):
+            return self.parse_integer()
+        elif self.peek('identifier') and self.peek('oparen', 1):
+            return self.parse_call()
+        else:
+            return self.parse_var_ref()
 
     def parse_integer(self):
         return IntegerNode(self.consume('integer').val)
+
+    def parse_call(self):
+        name = self.consume('identifier')
+        arg_exprs = self.parse_arg_exprs()
+        return CallNode(name, arg_exprs)
+
+    def parse_arg_exprs(self):
+        self.consume('oparen')
+        # stuff in here
+        arg_exprs = []
+        if not self.peek('cparen'):
+            arg_exprs.append(self.parse_expr())
+            while self.peek('comma'):
+                self.consume('comma')
+                arg_exprs.append(self.parse_expr())
+        self.consume('cparen')
+        return arg_exprs
+
+    def parse_var_ref(self):
+        return VarRefNode(self.consume('identifier').val)
 
     def consume(self, expected_type):
         token = self.tokens.pop(0)
@@ -108,14 +148,24 @@ class Parser():
         else:
             raise RuntimeError(f"Expected {expected_type}, got {token.tipo}.")
 
-    def peek(self, expected_type):
-        return self.tokens[0].tipo == expected_type
+    def peek(self, expected_type, offset=0):
+        return self.tokens[offset].tipo == expected_type
 
 tree = Parser(tokens).parse()
 print(tree)
 
 # Code generator
-
 # Compile to C, our definition
+class Generator():
+    def __init__(self):
+        return None
 
+    def generate(self, node):
+        if node:
+            return node
+        else:
+            raise RuntimeError(f"Unexpected type {node}")
+
+generated = Generator().generate(tree)
+print(generated)
 
