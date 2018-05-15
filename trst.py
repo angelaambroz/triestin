@@ -32,24 +32,19 @@ class Tokenizer():
         
     def tokenize(self):
         tokens = []
-        code = self.code
-        tokens.append(self.tokenize_one_token(code, tokens))
+        
+        while len(self.code) > 0:
+            tokens.append(self.tokenize_one_token())
 
-        # Due to recursion, things got switched around - switching them back
-        tokens_final = [x for x in tokens if x != None] 
-        tokens_final.reverse()
-
-        return tokens_final
+        return tokens
                     
-    def tokenize_one_token(self, chunk, list_of_tokens):
-        """Now recursive!"""
+    def tokenize_one_token(self):
         for (tipo, rgx_) in self.TOKEN_TYPES:
-            z = re.findall(rgx_, chunk)
+            rgx_= r'^' + rgx_
+            z = re.findall(rgx_, self.code)
             if z:
-                code = chunk.replace(z[0], '')
-                token = Token(tipo, z[0])
-                list_of_tokens.append(self.tokenize_one_token(code, list_of_tokens))
-                return token
+                self.code = self.code[len(z[0]):].strip()
+                return Token(tipo, z[0])
 
 tokens = Tokenizer("trst.src").tokenize()
 print(tokens)
@@ -108,10 +103,8 @@ class Parser():
         else:
             raise RuntimeError(f"Expected {expected_type}, got {token.tipo}.")
 
-
-
-# tree = Parser(tokens).parse()
-# print(tree)
+tree = Parser(tokens).parse()
+print(tree)
 
 
 # Code generator
