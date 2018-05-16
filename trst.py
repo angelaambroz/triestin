@@ -3,7 +3,9 @@
 import re
 from collections import namedtuple
 
+# # # # # # # 
 # Tokenizer/Lexer
+# # # # # # # 
 Token = namedtuple("Token", ("tipo", "val"))
 
 class Tokenizer():
@@ -43,10 +45,10 @@ class Tokenizer():
                 return Token(tipo, z[0])
 
 tokens = Tokenizer("trst.src").tokenize()
-for i in tokens:
-    print(i)
 
+# # # # # # # 
 # Parser
+# # # # # # # 
 
 # Structs
 DefNode = namedtuple("DefNode", ("name", "arg_names", "body"))
@@ -54,6 +56,7 @@ IntegerNode = namedtuple("IntegerNode", ("val"))
 CallNode = namedtuple("CallNode", ("name", "arg_exprs"))
 VarRefNode = namedtuple("VarRefNode", ("val"))
 
+# Class
 class Parser():
     def __init__(self, list_of_tokens):
         self.tokens = list_of_tokens
@@ -93,7 +96,7 @@ class Parser():
         return IntegerNode(int(self.consume('integer').val))
 
     def parse_call(self):
-        name = self.consume('identifier')
+        name = self.consume('identifier').val
         arg_exprs = self.parse_arg_exprs()
         return CallNode(name, arg_exprs)
 
@@ -123,20 +126,33 @@ class Parser():
         return self.tokens[offset].tipo == expected_type
 
 tree = Parser(tokens).parse()
-print(tree)
 
-# Code generator
-# Compile to C, our definition
+# # # # # # # 
+# Generator
+# # # # # # # 
+# Compile to Python, because argh C!!!
 class Generator():
     def __init__(self):
+        self.pspaces = '    '
         return None
 
     def generate(self, node):
-        if node:
-            return node
+        # case in Ruby is ???? in Python?
+        if type(node) == DefNode:
+            return f"def {node.name}({','.join(node.arg_names)}):\n return {self.generate(node.body)}\n"
+        if type(node) == CallNode:
+            return f"{node.name}({','.join([self.generate(expr) for expr in node.arg_exprs])})"
+        if type(node) == VarRefNode:
+            return node.val
+        if type(node) == IntegerNode:
+            return str(node.val)
         else:
             raise RuntimeError(f"Unexpected type {node}")
 
 generated = Generator().generate(tree)
-print(generated)
+
+RUNTIME = "def add(x,y):\n return x+y\n"
+# TEST = "\nprint(add(3,4))"
+TEST2 = "\nprint(f(3,4))"
+print("\n".join([RUNTIME, generated, TEST2]))
 
