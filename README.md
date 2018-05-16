@@ -2,7 +2,7 @@
 
 ![trieste](https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Frontemare_di_Trieste.jpg/640px-Frontemare_di_Trieste.jpg)
 
-`triestin` is a toy language, written in Python and compiling to C. `triestin` is also a [dialect](https://en.wikipedia.org/wiki/Triestine_dialect) from the northeastern corner of Italy, spoken by ~250,000 people. 
+`triestin` is a toy language, written and compiled in Python. `triestin` is also a [dialect](https://en.wikipedia.org/wiki/Triestine_dialect) from the northeastern corner of Italy, spoken by ~250,000 people. 
 
 Written by [Angela Ambroz](https://www.angelaambroz.com/blog/), as the final project for [CS50](https://cs50.harvard.edu/). I miei sono di [Gorizia](https://en.wikipedia.org/wiki/Gorizia). 
 
