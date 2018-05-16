@@ -1,15 +1,10 @@
 #!/usr/bin/python3 
 
 import re
+from collections import namedtuple
 
 # Tokenizer/Lexer
-class Token():
-    def __init__(self, tipo, val):
-        self.tipo = tipo
-        self.val = val
-
-    def __str__(self):
-        return f"Token(tipo='{self.tipo}', val='{self.val}')"
+Token = namedtuple("Token", ("tipo", "val"))
 
 class Tokenizer():
     def __init__(self, filename):
@@ -52,36 +47,12 @@ for i in tokens:
     print(i)
 
 # Parser
-class DefNode():
-    def __init__(self, name, arg_names, body):
-        self.name = name
-        self.arg_names = arg_names
-        self.body = body
 
-    def __str__(self):
-        return f"DefNode(name='{self.name}', args='{self.arg_names}', body='{self.body}'"
-
-class IntegerNode():
-    def __init__(self, val):
-        self.val = int(val)
-
-    def __str__(self):
-        return f"IntegerNode(val={self.val})"
-
-class CallNode():
-    def __init__(self, name, arg_exprs):
-        self.name = name
-        self.arg_exprs = arg_exprs
-
-    def __str__(self):
-        return f"CallNode(name={self.name.val}, arg_exprs={self.arg_exprs})"
-
-class VarRefNode():
-    def __init__(self, val):
-        self.val = val
-
-    def __str__(self):
-        return f"VarRefNode(val={self.val}"
+# Structs
+DefNode = namedtuple("DefNode", ("name", "arg_names", "body"))
+IntegerNode = namedtuple("IntegerNode", ("val"))
+CallNode = namedtuple("CallNode", ("name", "arg_exprs"))
+VarRefNode = namedtuple("VarRefNode", ("val"))
 
 class Parser():
     def __init__(self, list_of_tokens):
@@ -119,7 +90,7 @@ class Parser():
             return self.parse_var_ref()
 
     def parse_integer(self):
-        return IntegerNode(self.consume('integer').val)
+        return IntegerNode(int(self.consume('integer').val))
 
     def parse_call(self):
         name = self.consume('identifier')
