@@ -6,11 +6,29 @@
 
 Written by [Angela Ambroz](https://www.angelaambroz.com/blog/), as the final project for [CS50](https://cs50.harvard.edu/). I miei sono di [Gorizia](https://en.wikipedia.org/wiki/Gorizia). 
 
+## Installation
+
+Well, for now, you can 	`git clone` this repo and, from the folder, run:
+
+```{python}
+cd /your/cloned/repo
+chmod u+x trst
+./trst
+```
+
+Which launches the REPL:
+```
+Triestin v0.0.1
+Premi ctrl+C per uscire
+triestin> dimmi ciao mondo fin
+ciao mondo
+triestin>
+```
+
 ### Resources
 - [_Build Your Own Lisp_, Daniel Holden](http://www.buildyourownlisp.com/contents)
 - [_A compiler from scratch_, Destroy All Software](https://www.destroyallsoftware.com/screencasts/catalog/a-compiler-from-scratch)
 - [_A crash course in compilers_, Increment](https://increment.com/programming-languages/crash-course-in-compilers/)
 
-
-#### Credits
+### Credits
 Photo: [wiki](https://commons.wikimedia.org/wiki/File:Frontemare_di_Trieste.jpg)
