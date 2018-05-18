@@ -7,9 +7,7 @@ from collections import namedtuple
 Token = namedtuple("Token", ("tipo", "val"))
 
 class Tokenizer():
-    def __init__(self, filename):
-        self.file = filename
-
+    def __init__(self, source_code=None, filename=None):
         # defining our language tokens
         # order matters! hence i'm using a tuple
         self.TOKEN_TYPES = (
@@ -28,10 +26,15 @@ class Tokenizer():
             ('comma', r'\,')
         )
         
-        # the user-sourced code
-        with open(filename, 'r') as f:
-            self.code = f.read().replace('\n', '')
-        
+        # Source code, or...
+        if filename: 
+            with open(filename, 'r') as f:
+                self.code = f.read().replace('\n', '')
+
+        # ...REPL
+        if source_code:
+            self.code = source_code
+
     def tokenize(self):
         tokens = []
         

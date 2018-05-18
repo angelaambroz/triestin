@@ -10,14 +10,14 @@ class Generator():
     def generate(self, node):
         # case in Ruby is ???? in Python?
         if type(node) == DefNode:
-            return f"def {node.name}({','.join(node.arg_names)}):\n return {self.generate(node.body)}\n"
+            return "def {}({','.join()}):\n return {}\n".format(node.name, node.arg_names, self.generate(node.body))
         if type(node) == CallNode:
-            return f"{node.name}({','.join([self.generate(expr) for expr in node.arg_exprs])})"
+            return "{}({})".format(node.name, ','.join([self.generate(expr) for expr in node.arg_exprs]))
         if type(node) == VarRefNode:
             return node.val
         if type(node) == IntegerNode:
             return str(node.val)
         if type(node) == PrintNode:
-            return f"print('{node.val}')"
+            return "print('{}')".format(node.val)
         else:
-            raise RuntimeError(f"Unexpected type {node}")
+            raise RuntimeError("Tipo inaspettato {}".format(node))

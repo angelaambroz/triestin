@@ -18,19 +18,26 @@ class Parser():
 
     def parse(self):
         if self.peek('def'):
+            print('hi')
             return self.parse_def()
         if self.peek('print'):
             return self.parse_print()
+        if self.peek('integer'):
+            return self.parse_integer()
+        # if self.peek('integer') and 
         else:
             print("HIIII")
     
     def parse_print(self):
         self.consume('print')
         string_to_print = []
-        while not self.peek('fin'):
-            string_to_print.append(self.consume_next().val)
-        self.consume('fin')
-        return PrintNode(" ".join(string_to_print))
+        try:
+            while not self.peek('fin'):
+                string_to_print.append(self.consume_next().val)
+            self.consume('fin')
+            return PrintNode(" ".join(string_to_print))
+        except:
+            raise RuntimeError("Non aspettavo 'fin'.")
 
     def parse_def(self):
         self.consume('def')
@@ -92,7 +99,7 @@ class Parser():
         if token.tipo == expected_type:
             return token
         else:
-            raise RuntimeError(f"Expected {expected_type}, got {token.tipo}.")
+            raise RuntimeError("Aspettavo {}, ho ricevuto {}.".format(expected_type, token.tipo))
 
     def consume_next(self):
         return self.tokens.pop(0)
