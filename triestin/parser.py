@@ -18,7 +18,6 @@ class Parser():
 
     def parse(self):
         if self.peek('def'):
-            print('hi')
             return self.parse_def()
         if self.peek('print'):
             return self.parse_print()

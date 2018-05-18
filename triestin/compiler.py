@@ -10,7 +10,7 @@ class Generator():
     def generate(self, node):
         # case in Ruby is ???? in Python?
         if type(node) == DefNode:
-            return "def {}({','.join()}):\n return {}\n".format(node.name, node.arg_names, self.generate(node.body))
+            return "def {}({}):\n return {}\n".format(node.name, ','.join(node.arg_names), self.generate(node.body))
         if type(node) == CallNode:
             return "{}({})".format(node.name, ','.join([self.generate(expr) for expr in node.arg_exprs]))
         if type(node) == VarRefNode:
