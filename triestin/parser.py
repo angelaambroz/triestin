@@ -17,26 +17,32 @@ class Parser():
         self.tokens = list_of_tokens
 
     def parse(self):
+        if not self.peek('fin', -1):
+            raise RuntimeError('Si deve sempre finire con `fin`!')
         if self.peek('def'):
             return self.parse_def()
         if self.peek('print'):
             return self.parse_print()
-        if self.peek('integer'):
-            return self.parse_integer()
-        # if self.peek('integer') and 
+        if self.peek('integer') and self.peek('math',1):
+            return self.parse_math()
         else:
-            print("HIIII")
+            raise RuntimeError("Non so proprio cos'e' questo...")
+
+    def parse_math(self):
+        math_expr = ''
+        while not self.peek('fin'):
+            math_expr += self.consume_next().val
+        self.consume('fin')
+        return MathNode(math_expr)
+
     
     def parse_print(self):
         self.consume('print')
         string_to_print = []
-        try:
-            while not self.peek('fin'):
-                string_to_print.append(self.consume_next().val)
-            self.consume('fin')
-            return PrintNode(" ".join(string_to_print))
-        except:
-            raise RuntimeError("Non aspettavo 'fin'.")
+        while not self.peek('fin'):
+            string_to_print.append(self.consume_next().val)
+        self.consume('fin')
+        return PrintNode(" ".join(string_to_print))
 
     def parse_def(self):
         self.consume('def')
@@ -80,7 +86,6 @@ class Parser():
 
     def parse_arg_exprs(self):
         self.consume('oparen')
-        # stuff in here
         arg_exprs = []
         if not self.peek('cparen'):
             arg_exprs.append(self.parse_expr())

@@ -3,10 +3,13 @@
 import argparse
 from triestin import Tokenizer, Parser, Generator, State
 
-def triestin(text):
-    tokens = Tokenizer(source_code=text).tokenize()
+def triestin(**kwargs):
+    tokens = Tokenizer(**kwargs).tokenize()
     tree = Parser(tokens).parse()
     return Generator().generate(tree)
+
+
+# print(triestin(filename='trst.src'))
 
 if __name__=="__main__":
 
@@ -15,8 +18,14 @@ if __name__=="__main__":
     print("Premi ctrl+C per uscire")
 
     while True:
+        # Python 2 on CLI
         user_input = raw_input('triestin> ')
         local_state.add_history(str(user_input))
-        exec(triestin(user_input))
+        output, state = triestin(source_code=user_input)
+        if state == 'exec':
+            exec(output)
+        if state == 'eval':
+            print(eval(output))
+
 
 
