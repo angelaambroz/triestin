@@ -22,7 +22,12 @@ Triestin v0.0.1
 Premi ctrl+C per uscire
 triestin> dimmi ciao mondo fin
 ciao mondo
-triestin>
+triestin> 1+1 fin
+2
+triestin> ecco f(x) 100 fin
+triestin> x è 1 fin
+triestin> f(x) fin
+100
 ```
 
 ## Resources

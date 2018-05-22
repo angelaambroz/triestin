@@ -37,7 +37,7 @@ class Parser():
         if self.peek('anzi'):
             return self.parse_anzi()
         else:
-            raise RuntimeError("Non so proprio cos'e' questo...")
+            raise RuntimeError(u"Non so proprio cos'\u00E8 questo...")
 
     def parse_math(self):
         math_expr = ''

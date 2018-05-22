@@ -16,7 +16,7 @@ class Tokenizer():
             ('fin', r'\bfin\b'),
             ('anzi', r'\banzi\b'),
             ('identifier', r'\b[a-zA-Z]+\b'),
-            ('assignment', r'\bè\b'),
+            ('assignment', u'\u00E8'),
             ('integer', r'\b[0-9]+\b'),
             ('math', r'[\+\-\/\*+]'),
             ('oparen', r'\('),
