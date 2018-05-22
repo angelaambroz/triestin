@@ -9,13 +9,14 @@ Token = namedtuple("Token", ("tipo", "val"))
 
 class Tokenizer():
     def __init__(self, source_code=None, filename=None):
-        # defining our language tokens
-        # order matters! hence i'm using a tuple
+        # Our language tokens (ordered tuple)
         self.TOKEN_TYPES = (
             ('print', r'\bdimmi\b'),
             ('def', r'\becco\b'),
             ('fin', r'\bfin\b'),
+            ('anzi', r'\banzi\b'),
             ('identifier', r'\b[a-zA-Z]+\b'),
+            ('assignment', r'\bè\b'),
             ('integer', r'\b[0-9]+\b'),
             ('math', r'[\+\-\/\*+]'),
             ('oparen', r'\('),
@@ -26,7 +27,7 @@ class Tokenizer():
         # Source code, or...
         if filename:
             with open(filename, 'r') as f:
-                self.code = f.read().replace('\n', '')
+                self.code = f.read().replace('\n', ' ')
 
         # ...REPL
         if source_code:

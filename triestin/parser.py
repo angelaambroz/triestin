@@ -8,10 +8,13 @@ DefNode = namedtuple("DefNode", ("name", "arg_names", "body"))
 IntegerNode = namedtuple("IntegerNode", ("val"))
 CallNode = namedtuple("CallNode", ("name", "arg_exprs"))
 VarRefNode = namedtuple("VarRefNode", ("val"))
+AssignNode = namedtuple("AssignNode", ("name", "val"))
 PrintNode = namedtuple("PrintNode", ("val"))
 MathNode = namedtuple("MathNode", ("val"))
+IdentifierNode = namedtuple("IdentifierNode", ("name", "arg_names"))
+AnziNode = namedtuple("AnziNode", ("val"))
 
-# Class
+
 class Parser():
     def __init__(self, list_of_tokens):
         self.tokens = list_of_tokens
@@ -25,6 +28,14 @@ class Parser():
             return self.parse_print()
         if self.peek('integer') and self.peek('math',1):
             return self.parse_math()
+        if self.peek('oparen') and self.peek('integer', 1):
+            return self.parse_math()
+        if self.peek('identifier') and self.peek('oparen', 1):
+            return self.parse_call()
+        if self.peek('identifier') and self.peek('assignment', 1):
+            return self.parse_assignment()
+        if self.peek('anzi'):
+            return self.parse_anzi()
         else:
             raise RuntimeError("Non so proprio cos'e' questo...")
 
@@ -34,6 +45,31 @@ class Parser():
             math_expr += self.consume_next().val
         self.consume('fin')
         return MathNode(math_expr)
+
+    def parse_assignment(self):
+        name = self.consume('identifier').val 
+        self.consume('assignment')
+        value = self.consume_next().val
+        self.consume('fin')
+        return AssignNode(name=name, val=value)
+
+    def parse_anzi(self):
+        """
+        `anzi` is kind of like 'actually' or 'rather'
+        it's kind of like "doch" (German) - it can signify "scratch that"
+
+        programmatic `anzi` will revise whatever assignment you just made (for now)
+
+        e.g. 
+        x è 1 fin
+        anzi 2 fin
+        dimmi x fin
+        >> 2 
+        """
+        self.consume('anzi')
+        value = self.consume_next().val
+        self.consume('fin')
+        return AnziNode(val=value)
 
     
     def parse_print(self):
