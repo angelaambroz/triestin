@@ -29,6 +29,7 @@ triestin>
 - [_Build Your Own Lisp_, Daniel Holden](http://www.buildyourownlisp.com/contents)
 - [_A compiler from scratch_, Destroy All Software](https://www.destroyallsoftware.com/screencasts/catalog/a-compiler-from-scratch)
 - [_A crash course in compilers_, Increment](https://increment.com/programming-languages/crash-course-in-compilers/)
+- [_(How to Write a (Lisp) Interpreter (in Python))_](http://norvig.com/lispy.html)
 
 ## Credits
 Photo: [wiki](https://commons.wikimedia.org/wiki/File:Frontemare_di_Trieste.jpg)
