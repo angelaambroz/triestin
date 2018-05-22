@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: latin1 -*-
 """Parser
 """
 
@@ -36,8 +38,10 @@ class Parser():
             return self.parse_assignment()
         if self.peek('anzi'):
             return self.parse_anzi()
+        if self.peek('identifier'):
+            return self.parse_var_ref()
         else:
-            raise RuntimeError(u"Non so proprio cos'\u00E8 questo...")
+            raise RuntimeError(u"Non so proprio cos'è questo...")
 
     def parse_math(self):
         math_expr = ''

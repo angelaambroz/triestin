@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: latin1 -*-
 """Compiler
 """
 
@@ -12,8 +14,6 @@ class Generator():
     def generate(self, node):
         """The glory and drama of exec() vs. eval() vs. ...compile()?
         """
-        print()
-
         if type(node) == DefNode:
             return "def {}({}):\n return {}\n".format(node.name, 
                 ','.join(node.arg_names), self.generate(node.body)), 'exec'
@@ -21,7 +21,7 @@ class Generator():
             return "{}({})".format(node.name, 
                 ','.join([self.generate(expr)[0] for expr in node.arg_exprs])), 'eval'
         if type(node) == AssignNode:
-            return "{} = {}".format(node.name, node.val)
+            return "{} = {}".format(node.name, node.val), 'exec'
         if type(node) == VarRefNode:
             return node.val, 'eval'
         if type(node) == IntegerNode:

@@ -24,10 +24,10 @@ triestin> dimmi ciao mondo fin
 ciao mondo
 triestin> 1+1 fin
 2
-triestin> ecco f(x) 100 fin
 triestin> x è 1 fin
-triestin> f(x) fin
-100
+triestin> x fin
+1
+triestin> ecco f(x) 100 fin
 ```
 
 ## Resources

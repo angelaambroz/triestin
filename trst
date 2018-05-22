@@ -1,38 +1,42 @@
 #!/usr/bin/python
+# -*- coding: latin1 -*-
 
 import argparse
 from triestin import Tokenizer, Parser, Generator, State
 
 def triestin(**kwargs):
     tokens = Tokenizer(**kwargs).tokenize()
-    for i in tokens:
-        print(i)
+    # for i in tokens:
+    #     print(i)
     tree = Parser(tokens).parse()
-    print(tree)
+    # print(tree)
     return Generator().generate(tree)
 
-print(triestin(filename='trst.src'))
+# print(triestin(filename='trst.src'))
 
 
+if __name__=="__main__":
 
-# if __name__=="__main__":
+    local_state = State()
+    print("Triestin v0.0.1")
+    print("ctrl+C per uscire")
 
-#     local_state = State()
-#     print("Triestin v0.0.1")
-#     print("ctrl+C per uscire")
+    while True:
+        try:
+            # Python 2 on CLI
+            user_input = raw_input('triestin> ')
+            local_state.add_history(str(user_input))
+            output, state = triestin(source_code=user_input)
+            if state == 'exec':
+                exec(output)
+            if state == 'eval':
+                if type(eval(output)) == tuple:
+                    print(eval(output)[0])
+                else:
+                    print(eval(output))
+        except Exception as e:
+            print(e)
 
-#     while True:
-#         # Python 2 on CLI
-#         user_input = raw_input('triestin> ')
-#         local_state.add_history(str(user_input))
-#         output, state = triestin(source_code=user_input)
-#         if state == 'exec':
-#             exec(output)
-#         if state == 'eval':
-#             if type(eval(output)) == tuple:
-#                 print(eval(output)[0])
-#             else:
-#                 print(eval(output))
 
 
 

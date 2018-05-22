@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: latin1 -*-
 """Tokenizer
 """
 
@@ -16,7 +18,7 @@ class Tokenizer():
             ('fin', r'\bfin\b'),
             ('anzi', r'\banzi\b'),
             ('identifier', r'\b[a-zA-Z]+\b'),
-            ('assignment', u'\u00E8'),
+            ('assignment', u'è'), 
             ('integer', r'\b[0-9]+\b'),
             ('math', r'[\+\-\/\*+]'),
             ('oparen', r'\('),
@@ -38,6 +40,9 @@ class Tokenizer():
 
         while len(self.code) > 0:
             tokens.append(self.tokenize_one_token())
+
+        if not tokens:
+            raise RuntimeError(u"Non so proprio cos'è questo...")
 
         return tokens
 
