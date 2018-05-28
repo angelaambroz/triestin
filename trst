@@ -23,23 +23,23 @@ if __name__=="__main__":
     local_state = State()
 
     while True:
-        # try:
-        # Python 2 on CLI
-        user_input = raw_input('triestin> ')
-        output = triestin(source_code=user_input)
-        local_state.add_history(output)
-        if output['state'] == 'exec':
-            exec(output['code'])
-        if output['state'] == 'eval':
-            if type(eval(output['code'])) == tuple:
-                print(eval(output['code'])[0])
-            else:
-                print(eval(output['code']))
-        if output['state'] == 'anzi':
-            if local_state.history[-2]['node'] == 'AssignNode':
-                prev_node = local_state.history[-2]
-                prev_var = prev_node['code'].split('=')[0].strip()
-                new_code = '{} = {}'.format(prev_var, output['code'])
-                exec(new_code)
-        # except Exception as e:
-        #     print(e)
+        try:
+            # Python 2 on CLI
+            user_input = raw_input('triestin> ')
+            output = triestin(source_code=user_input)
+            local_state.add_history(output)
+            if output['state'] == 'exec':
+                exec(output['code'])
+            if output['state'] == 'eval':
+                if type(eval(output['code'])) == tuple:
+                    print(eval(output['code'])[0])
+                else:
+                    print(eval(output['code']))
+            if output['state'] == 'anzi':
+                if local_state.history[-2]['node'] == 'AssignNode':
+                    prev_node = local_state.history[-2]
+                    prev_var = prev_node['code'].split('=')[0].strip()
+                    new_code = '{} = {}'.format(prev_var, output['code'])
+                    exec(new_code)
+        except Exception as e:
+            print(e)
