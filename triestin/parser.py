@@ -68,7 +68,7 @@ class Parser():
         x è 1 fin
         anzi 2 fin
         x fin
-        >> 2 
+        >> 2
         """
         self.consume('anzi')
         value = self.consume_next().val
@@ -89,7 +89,8 @@ class Parser():
         name = self.consume('identifier').val
         arg_names = self.parse_arg_names()
         body = self.parse_expr()
-        self.consume('fin')
+        if self.tokens and self.peek('fin'):
+            self.consume('fin')
         return DefNode(name, arg_names, body)
 
     def parse_arg_names(self):
@@ -105,10 +106,10 @@ class Parser():
         return args
 
     def parse_expr(self):
+        if self.peek('math',1):
+            return self.parse_math()
         if self.peek('integer'):
             return self.parse_integer()
-        if self.peek('+') or self.peek('-'):
-            return self.parse_math()
         if self.peek('print'):
             return self.parse_print()
         if self.peek('identifier') and self.peek('oparen', 1):
