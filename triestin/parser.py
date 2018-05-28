@@ -51,7 +51,7 @@ class Parser():
         return MathNode(math_expr)
 
     def parse_assignment(self):
-        name = self.consume('identifier').val 
+        name = self.consume('identifier').val
         self.consume('assignment')
         value = self.consume_next().val
         self.consume('fin')
@@ -64,10 +64,10 @@ class Parser():
 
         programmatic `anzi` will revise whatever assignment you just made (for now)
 
-        e.g. 
+        e.g.
         x è 1 fin
         anzi 2 fin
-        dimmi x fin
+        x fin
         >> 2 
         """
         self.consume('anzi')
@@ -75,7 +75,7 @@ class Parser():
         self.consume('fin')
         return AnziNode(val=value)
 
-    
+
     def parse_print(self):
         self.consume('print')
         string_to_print = []

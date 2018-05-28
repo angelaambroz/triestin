@@ -18,7 +18,7 @@ class Tokenizer():
             ('fin', r'\bfin\b'),
             ('anzi', r'\banzi\b'),
             ('identifier', r'\b[a-zA-Z]+\b'),
-            ('assignment', u'è'), 
+            ('assignment', u'è'),
             ('integer', r'\b[0-9]+\b'),
             ('math', r'[\+\-\/\*+]'),
             ('oparen', r'\('),
@@ -53,4 +53,3 @@ class Tokenizer():
             if z:
                 self.code = self.code[len(z[0]):].strip()
                 return Token(tipo, z[0])
-
