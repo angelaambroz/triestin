@@ -17,24 +17,7 @@ chmod u+x trst
 ```
 
 Which launches the REPL:
-```
-Triestin v0.0.1
-Premi ctrl+C per uscire
-triestin> dimmi ciao mondo fin
-ciao mondo
-triestin> 1+1 fin
-2
-triestin> x è 1 fin
-triestin> x fin
-1
-triestin> g è 50 fin
-triestin> anzi 100 fin
-triestin> g fin
-100
-triestin> ecco f(x) 100*x fin
-triestin> f(5) fin
-500
-```
+![REPL gif](trst.gif)
 
 ## Resources
 - [_Build Your Own Lisp_, Daniel Holden](http://www.buildyourownlisp.com/contents)
