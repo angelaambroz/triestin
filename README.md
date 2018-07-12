@@ -19,6 +19,11 @@ chmod u+x trst
 Which launches the REPL:
 ![REPL gif](trst.gif)
 
+## Further reading
+
+- [Blog post](http://angelaambroz.com/blog/posts/2018/May/30/introducing_triestin/)
+- [_Joy of Programming_ Meetup slide deck](https://docs.google.com/presentation/d/1vuRte5qstacxVkHbhecGdGSjjUtCWLDNqBWlWCCPTN0/edit?usp=sharing)
+
 ## Resources
 - [_Build Your Own Lisp_, Daniel Holden](http://www.buildyourownlisp.com/contents)
 - [_A compiler from scratch_, Destroy All Software](https://www.destroyallsoftware.com/screencasts/catalog/a-compiler-from-scratch)
